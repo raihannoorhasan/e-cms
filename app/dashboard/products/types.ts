@@ -1,45 +1,35 @@
-// Product Types
-export type VariantType = 'size' | 'color' | 'volume' | 'material' | 'custom';
+import type { VariantTemplate } from "../variants/components/VariantTemplateForm";
 
-export type VariantValue = {
+export interface Category {
   id: string;
-  value: string;
-  price_adjustment: number;
-  stock: number;
-  sku: string;
-};
-
-export type ProductVariant = {
-  type: VariantType;
   name: string;
-  values: VariantValue[];
-};
+  variants: VariantTemplate[];
+}
 
-export type Product = {
+export interface ProductVariant {
+  variantTemplateId: string;
+  selectedValues: {
+    valueId: string;
+    price_adjustment: number;
+    stock: number;
+    sku: string;
+  }[];
+}
+
+export interface Product {
   id: string;
   name: string;
   description: string;
-  base_price: number;
-  category_id: string;
-  vendor_id: string;
+  categoryId: string;
+  basePrice: number;
+  sku: string;
   images: string[];
   variants: ProductVariant[];
-  has_variants: boolean;
   stock: number;
-  sku: string;
-  status: 'active' | 'draft' | 'out_of_stock';
-  created_at: string;
-  updated_at: string;
-};
+  status: 'draft' | 'active' | 'inactive';
+}
 
-// Stock Types
-export type StockMovement = {
+export interface Vendor {
   id: string;
-  product_id: string;
-  variant_id?: string;
-  quantity: number;
-  type: 'in' | 'out';
-  reason: 'purchase' | 'sale' | 'return' | 'adjustment';
-  date: string;
-  notes?: string;
-};
+  name: string;
+}

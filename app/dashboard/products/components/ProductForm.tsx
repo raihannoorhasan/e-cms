@@ -23,87 +23,20 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VariantTemplate, VariantTemplateForm } from "../../variants/components/VariantTemplateForm";
+import VariantTemplateForm from "../../variants/components/VariantTemplateForm";
+import type { VariantTemplate } from "../../variants/components/VariantTemplateForm";
+import type { Category, Product, ProductVariant, Vendor } from "../types";
 
-interface Category {
-  id: string;
-  name: string;
-  variants: VariantTemplate[];
+interface Props {
+  categories: Category[];
+  vendors: Vendor[];
+  onSave: (product: Product) => void;
+  onCancel: () => void;
+  onAddVariantTemplate: (categoryId: string, template: VariantTemplate) => void;
 }
 
-interface ProductVariant {
-  variantTemplateId: string;
-  selectedValues: {
-    valueId: string;
-    price_adjustment: number;
-    stock: number;
-    sku: string;
-  }[];
-}
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  categoryId: string;
-  basePrice: number;
-  sku: string;
-  images: string[];
-  variants: ProductVariant[];
-  stock: number;
-  status: 'draft' | 'active' | 'inactive';
-}
-
-// Mock data
-const mockCategories: Category[] = [
-  {
-    id: "1",
-    name: "T-Shirts",
-    variants: [
-      {
-        id: "size-1",
-        name: "T-Shirt Sizes",
-        type: "size",
-        values: [
-          { id: "s", value: "Small", metadata: { dimensions: "36x28" } },
-          { id: "m", value: "Medium", metadata: { dimensions: "38x30" } },
-          { id: "l", value: "Large", metadata: { dimensions: "40x32" } }
-        ],
-        metadata: { displayType: "button", required: true }
-      },
-      {
-        id: "color-1",
-        name: "Shirt Colors",
-        type: "color",
-        values: [
-          { id: "black", value: "Black", metadata: { hex: "#000000" } },
-          { id: "white", value: "White", metadata: { hex: "#FFFFFF" } },
-          { id: "red", value: "Red", metadata: { hex: "#FF0000" } }
-        ],
-        metadata: { displayType: "color", required: true }
-      }
-    ]
-  },
-  {
-    id: "2",
-    name: "Shoes",
-    variants: [
-      {
-        id: "size-2",
-        name: "Shoe Sizes",
-        type: "size",
-        values: [
-          { id: "38", value: "38", metadata: { dimensions: "24.5cm" } },
-          { id: "39", value: "39", metadata: { dimensions: "25cm" } },
-          { id: "40", value: "40", metadata: { dimensions: "25.5cm" } }
-        ],
-        metadata: { displayType: "dropdown", required: true }
-      }
-    ]
-  }
-];
-
-export default function ProductForm() {
-  const [product, setProduct] = useState<ProductFormData>({
+export default function ProductForm({ categories, vendors, onSave, onCancel, onAddVariantTemplate }: Props) {
+  const [product, setProduct] = useState<Omit<Product, 'id'>>({
     name: "",
     description: "",
     categoryId: "",
@@ -119,7 +52,6 @@ export default function ProductForm() {
   const [isAddingVariant, setIsAddingVariant] = useState(false);
   const [newImage, setNewImage] = useState("");
 
-  // Update variants when category changes
   useEffect(() => {
     if (selectedCategory) {
       const initialVariants = selectedCategory.variants.map(template => ({
@@ -131,9 +63,16 @@ export default function ProductForm() {
   }, [selectedCategory]);
 
   const handleCategoryChange = (categoryId: string) => {
-    const category = mockCategories.find(c => c.id === categoryId);
+    const category = categories.find(c => c.id === categoryId);
     setSelectedCategory(category || null);
-    setProduct(prev => ({ ...prev, categoryId }));
+    setProduct(prev => ({ 
+      ...prev, 
+      categoryId,
+      variants: category?.variants.map(template => ({
+        variantTemplateId: template.id,
+        selectedValues: []
+      })) || []
+    }));
   };
 
   const handleVariantValueChange = (templateId: string, valueId: string, field: string, value: any) => {
@@ -161,6 +100,26 @@ export default function ProductForm() {
         };
       })
     }));
+  };
+
+  const handleAddVariant = (template: VariantTemplate) => {
+    if (selectedCategory) {
+      onAddVariantTemplate(selectedCategory.id, template);
+      setProduct(prev => ({
+        ...prev,
+        variants: [
+          ...prev.variants,
+          { variantTemplateId: template.id, selectedValues: [] }
+        ]
+      }));
+    }
+    setIsAddingVariant(false);
+  };
+
+  const handleSubmit = () => {
+    if (product.name && product.categoryId) {
+      onSave(product as Product);
+    }
   };
 
   const renderVariantInput = (template: VariantTemplate) => {
@@ -328,24 +287,6 @@ export default function ProductForm() {
     }
   };
 
-  const handleAddVariant = (template: VariantTemplate) => {
-    if (selectedCategory) {
-      const updatedCategory = {
-        ...selectedCategory,
-        variants: [...selectedCategory.variants, template]
-      };
-      setSelectedCategory(updatedCategory);
-      setProduct(prev => ({
-        ...prev,
-        variants: [
-          ...prev.variants,
-          { variantTemplateId: template.id, selectedValues: [] }
-        ]
-      }));
-    }
-    setIsAddingVariant(false);
-  };
-
   return (
     <div className="space-y-8">
       <Tabs defaultValue="basic" className="space-y-4">
@@ -376,7 +317,7 @@ export default function ProductForm() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockCategories.map(category => (
+                  {categories.map(category => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
@@ -513,8 +454,8 @@ export default function ProductForm() {
       </Tabs>
 
       <div className="flex justify-end space-x-2">
-        <Button variant="outline">Cancel</Button>
-        <Button>Save Product</Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button onClick={handleSubmit}>Save Product</Button>
       </div>
     </div>
   );

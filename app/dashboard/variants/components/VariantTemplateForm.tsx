@@ -47,7 +47,7 @@ interface Props {
   isQuickAdd?: boolean;
 }
 
-export default function VariantTemplateForm({ onSave, onCancel, existingTemplate, isQuickAdd }: Props) {
+const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }: Props) => {
   const [template, setTemplate] = useState<VariantTemplate>(
     existingTemplate || {
       id: crypto.randomUUID(),
@@ -288,4 +288,6 @@ export default function VariantTemplateForm({ onSave, onCancel, existingTemplate
       </div>
     </div>
   );
-}
+};
+
+export default VariantTemplateForm;

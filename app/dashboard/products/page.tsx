@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Filter, Edit2, Trash2, Eye, MoreVertical, Tags } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,45 +31,71 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ProductForm from "./components/ProductForm";
+import type { Category } from "./types";
+import type { VariantTemplate } from "../variants/components/VariantTemplateForm";
 
-// Mock data
-const mockCategories = [
+// Shared mock data
+const mockCategories: Category[] = [
   {
     id: "1",
     name: "Clothing",
     variants: [
       {
-        id: "1",
-        name: "Size",
+        id: "size-1",
+        name: "Clothing Sizes",
         type: "size",
-        values: ["XS", "S", "M", "L", "XL"],
+        values: [
+          { id: "xs", value: "XS", metadata: { dimensions: "32x24" } },
+          { id: "s", value: "S", metadata: { dimensions: "34x26" } },
+          { id: "m", value: "M", metadata: { dimensions: "36x28" } },
+          { id: "l", value: "L", metadata: { dimensions: "38x30" } },
+          { id: "xl", value: "XL", metadata: { dimensions: "40x32" } }
+        ],
+        metadata: {
+          displayType: "button",
+          required: true,
+          allowMultiple: false
+        }
       },
       {
-        id: "2",
-        name: "Color",
+        id: "color-1",
+        name: "Basic Colors",
         type: "color",
-        values: ["Black", "White", "Red", "Blue"],
-      },
-    ],
+        values: [
+          { id: "black", value: "Black", metadata: { hex: "#000000" } },
+          { id: "white", value: "White", metadata: { hex: "#FFFFFF" } },
+          { id: "red", value: "Red", metadata: { hex: "#FF0000" } },
+          { id: "blue", value: "Blue", metadata: { hex: "#0000FF" } }
+        ],
+        metadata: {
+          displayType: "color",
+          required: true,
+          allowMultiple: false
+        }
+      }
+    ]
   },
   {
     id: "2",
     name: "Electronics",
     variants: [
       {
-        id: "3",
-        name: "Storage",
+        id: "storage-1",
+        name: "Storage Options",
         type: "custom",
-        values: ["64GB", "128GB", "256GB"],
-      },
-      {
-        id: "4",
-        name: "Color",
-        type: "color",
-        values: ["Space Gray", "Silver", "Gold"],
-      },
-    ],
-  },
+        values: [
+          { id: "64", value: "64GB", metadata: {} },
+          { id: "128", value: "128GB", metadata: {} },
+          { id: "256", value: "256GB", metadata: {} }
+        ],
+        metadata: {
+          displayType: "button",
+          required: true,
+          allowMultiple: false
+        }
+      }
+    ]
+  }
 ];
 
 const mockVendors = [
@@ -111,16 +137,26 @@ const mockProducts = [
 ];
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState(mockProducts);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [vendorFilter, setVendorFilter] = useState("all");
+  const [products, setProducts] = useState(mockProducts);
 
   const handleSaveProduct = (product: any) => {
-    // Handle saving the product
     console.log("Saving product:", product);
     setIsAddDialogOpen(false);
+  };
+
+  const handleAddVariantTemplate = (categoryId: string, template: VariantTemplate) => {
+    setCategories(prevCategories => 
+      prevCategories.map(category => 
+        category.id === categoryId
+          ? { ...category, variants: [...category.variants, template] }
+          : category
+      )
+    );
   };
 
   const filteredProducts = products.filter((product) => {
@@ -152,10 +188,11 @@ export default function ProductsPage() {
               <DialogTitle>Add New Product</DialogTitle>
             </DialogHeader>
             <ProductForm
-              categories={mockCategories}
+              categories={categories}
               vendors={mockVendors}
               onSave={handleSaveProduct}
               onCancel={() => setIsAddDialogOpen(false)}
+              onAddVariantTemplate={handleAddVariantTemplate}
             />
           </DialogContent>
         </Dialog>
