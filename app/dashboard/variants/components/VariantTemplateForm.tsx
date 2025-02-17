@@ -1,16 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, Save, AlertCircle, Eye, Palette, Settings2, Boxes, ArrowRight } from "lucide-react";
+import { Plus, X, Save, AlertCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -29,8 +22,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type VariantType = 'size' | 'color' | 'volume' | 'material' | 'custom';
-
 export interface VariantValue {
   id: string;
   value: string;
@@ -48,20 +39,14 @@ export interface VariantValue {
 export interface VariantTemplate {
   id: string;
   name: string;
-  type: VariantType;
   values: VariantValue[];
   metadata?: {
-    displayType?: 'dropdown' | 'color' | 'button' | 'radio';
+    displayType?: "dropdown" | "color" | "button" | "radio";
     required?: boolean;
     allowMultiple?: boolean;
     defaultValue?: string;
     description?: string;
     sortOrder?: number;
-    validation?: {
-      min?: number;
-      max?: number;
-      pattern?: string;
-    };
   };
 }
 
@@ -72,43 +57,81 @@ interface Props {
   isQuickAdd?: boolean;
 }
 
-const VARIANT_TYPE_INFO = {
+const DISPLAY_EXAMPLES = {
   size: {
-    icon: Boxes,
-    description: "Product dimensions, clothing sizes, etc.",
-    examples: ["XS", "S", "M", "L", "XL", "32x32", "EU 42"],
+    name: "T-Shirt Size",
+    display: "button",
+    required: true,
+    allowMultiple: false,
+    description: "Choose your t-shirt size",
+    values: ["S", "M", "L", "XL"],
   },
   color: {
-    icon: Palette,
-    description: "Colors with hex values and optional images",
-    examples: ["Red", "Navy Blue", "Forest Green"],
-  },
-  volume: {
-    icon: Settings2,
-    description: "Capacity, weight, or volume measurements",
-    examples: ["500ml", "1L", "2.5kg", "100g"],
+    name: "Color Options",
+    display: "color",
+    required: true,
+    allowMultiple: false,
+    description: "Select a color",
+    values: ["Black", "White", "Navy", "Red"],
   },
   material: {
-    icon: Settings2,
-    description: "Material types with optional properties",
-    examples: ["Cotton", "Leather", "Stainless Steel"],
+    name: "Fabric Type",
+    display: "radio",
+    required: false,
+    allowMultiple: false,
+    description: "Choose your preferred fabric",
+    values: ["Cotton", "Polyester", "Blend"],
   },
-  custom: {
-    icon: Settings2,
-    description: "Custom variant type for special cases",
-    examples: ["Option A", "Option B", "Custom Value"],
+  toppings: {
+    name: "Pizza Toppings",
+    display: "dropdown",
+    required: false,
+    allowMultiple: true,
+    description: "Select your toppings",
+    values: ["Cheese", "Pepperoni", "Mushrooms", "Olives"],
   },
 };
 
-const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }: Props) => {
+const DISPLAY_TYPES = [
+  {
+    value: "button",
+    label: "Button Group",
+    description: "Best for small sets of options like sizes or simple choices",
+    example: "Size options: S, M, L, XL",
+  },
+  {
+    value: "color",
+    label: "Color Swatch",
+    description: "Perfect for color selections with visual preview",
+    example: "Product colors with visual swatches",
+  },
+  {
+    value: "dropdown",
+    label: "Dropdown Menu",
+    description: "Ideal for long lists of options",
+    example: "Country selection, product categories",
+  },
+  {
+    value: "radio",
+    label: "Radio List",
+    description: "Good for options that need descriptions",
+    example: "Shipping methods with prices and delivery times",
+  },
+];
+
+const VariantTemplateForm = ({
+  onSave,
+  onCancel,
+  existingTemplate,
+  isQuickAdd,
+}: Props) => {
   const [template, setTemplate] = useState<VariantTemplate>(
     existingTemplate || {
       id: crypto.randomUUID(),
       name: "",
-      type: "custom",
       values: [],
       metadata: {
-        displayType: 'dropdown',
+        displayType: "button",
         required: true,
         allowMultiple: false,
         description: "",
@@ -153,7 +176,7 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
 
   const renderPreview = () => {
     switch (template.metadata?.displayType) {
-      case 'color':
+      case "color":
         return (
           <div className="grid grid-cols-6 gap-2">
             {template.values.map((value) => (
@@ -174,19 +197,15 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
           </div>
         );
 
-      case 'button':
+      case "button":
         return (
           <div className="flex flex-wrap gap-2">
             {template.values.map((value) => (
-              <Button
-                key={value.id}
-                variant="outline"
-                className="h-9"
-              >
+              <Button key={value.id} variant="outline" className="h-9">
                 {value.value}
-                {value.metadata?.dimensions && (
+                {value.metadata?.surcharge && (
                   <span className="ml-1 text-xs text-muted-foreground">
-                    ({value.metadata.dimensions})
+                    (+${value.metadata.surcharge})
                   </span>
                 )}
               </Button>
@@ -194,7 +213,7 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
           </div>
         );
 
-      case 'radio':
+      case "radio":
         return (
           <div className="space-y-2">
             {template.values.map((value) => (
@@ -202,11 +221,7 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
                 key={value.id}
                 className="flex items-center space-x-2 cursor-pointer"
               >
-                <input
-                  type="radio"
-                  name="preview"
-                  className="w-4 h-4"
-                />
+                <input type="radio" name="preview" className="w-4 h-4" />
                 <span>{value.value}</span>
                 {value.metadata?.surcharge && (
                   <span className="text-sm text-muted-foreground">
@@ -220,18 +235,19 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
 
       default:
         return (
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder={`Select ${template.name}`} />
-            </SelectTrigger>
-            <SelectContent>
+          <div className="w-full max-w-xs">
+            <select className="w-full px-3 py-2 rounded-md border border-input bg-background">
+              <option value="">Select {template.name}</option>
               {template.values.map((value) => (
-                <SelectItem key={value.id} value={value.id}>
+                <option key={value.id} value={value.id}>
                   {value.value}
-                </SelectItem>
+                  {value.metadata?.surcharge
+                    ? ` (+$${value.metadata.surcharge})`
+                    : ""}
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+          </div>
         );
     }
   };
@@ -242,7 +258,8 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Quick adding a variant template. This will be available for all categories after creation.
+            Quick adding a variant template. This will be available immediately
+            after creation.
           </AlertDescription>
         </Alert>
       )}
@@ -252,7 +269,7 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
           <TabsList>
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="values">Values</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            <TabsTrigger value="display">Display</TabsTrigger>
           </TabsList>
           <TooltipProvider>
             <Tooltip>
@@ -275,85 +292,116 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
               <CardDescription>
-                Configure the basic settings for your variant template
+                Name and describe your variant option
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Template Name</Label>
-                  <Input
-                    id="name"
-                    value={template.name}
-                    onChange={(e) => setTemplate({ ...template, name: e.target.value })}
-                    placeholder="e.g., T-Shirt Sizes"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Variant Type</Label>
-                  <Select
-                    value={template.type}
-                    onValueChange={(value: VariantType) =>
-                      setTemplate({ 
-                        ...template, 
-                        type: value,
-                        metadata: {
-                          ...template.metadata,
-                          displayType: value === 'color' ? 'color' : 'dropdown'
-                        }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(VARIANT_TYPE_INFO).map(([type, info]) => (
-                        <SelectItem key={type} value={type}>
-                          <div className="flex items-center">
-                            <info.icon className="w-4 h-4 mr-2" />
-                            <span className="capitalize">{type}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="name">Variant Name</Label>
                 <Input
-                  id="description"
-                  value={template.metadata?.description || ""}
-                  onChange={(e) =>
-                    setTemplate({
-                      ...template,
-                      metadata: { ...template.metadata, description: e.target.value }
-                    })
-                  }
-                  placeholder="Enter a description for this variant template"
+                  id="name"
+                  value={template.name}
+                  onChange={(e) => setTemplate({ ...template, name: e.target.value })}
+                  placeholder="e.g., Size, Color, Material"
                 />
               </div>
 
-              {VARIANT_TYPE_INFO[template.type] && (
-                <div className="rounded-lg bg-muted p-4 space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <VARIANT_TYPE_INFO[template.type].icon className="w-4 h-4" />
-                    <span className="font-medium">{template.type.charAt(0).toUpperCase() + template.type.slice(1)} Type</span>
+              <div className="space-y-4">
+                <Label>Quick Setup Examples</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.entries(DISPLAY_EXAMPLES).map(([key, example]) => (
+                    <div
+                      key={key}
+                      className="p-4 border rounded-lg cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => {
+                        setTemplate({
+                          ...template,
+                          name: example.name,
+                          metadata: {
+                            displayType: example.display as any,
+                            required: example.required,
+                            allowMultiple: example.allowMultiple,
+                            description: example.description,
+                          },
+                          values: example.values.map(value => ({
+                            id: crypto.randomUUID(),
+                            value,
+                            metadata: {},
+                          })),
+                        });
+                      }}
+                    >
+                      <h3 className="font-medium">{example.name}</h3>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {example.values.map(value => (
+                          <Badge key={value} variant="secondary">
+                            {value}
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-sm">
+                        <Badge variant={example.required ? "default" : "secondary"}>
+                          {example.required ? "Required" : "Optional"}
+                        </Badge>
+                        {example.allowMultiple && (
+                          <Badge variant="secondary" className="ml-2">
+                            Multiple
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={template.metadata?.required}
+                        onChange={(e) =>
+                          setTemplate({
+                            ...template,
+                            metadata: {
+                              ...template.metadata,
+                              required: e.target.checked,
+                            },
+                          })
+                        }
+                        className="rounded border-gray-300"
+                      />
+                      <span>Required Selection</span>
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Force customers to choose an option before adding to cart
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {VARIANT_TYPE_INFO[template.type].description}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {VARIANT_TYPE_INFO[template.type].examples.map((example) => (
-                      <Badge key={example} variant="secondary">
-                        {example}
-                      </Badge>
-                    ))}
+                  <div className="space-y-2">
+                    <Label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={template.metadata?.allowMultiple}
+                        onChange={(e) =>
+                          setTemplate({
+                            ...template,
+                            metadata: {
+                              ...template.metadata,
+                              allowMultiple: e.target.checked,
+                            },
+                          })
+                        }
+                        className="rounded border-gray-300"
+                      />
+                      <span>Allow Multiple Selections</span>
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Let customers choose more than one option
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -363,7 +411,7 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
             <CardHeader>
               <CardTitle>Variant Values</CardTitle>
               <CardDescription>
-                Add and configure the possible values for this variant
+                Add the available options for this variant
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -377,23 +425,15 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
                   />
                 </div>
 
-                {template.type === 'color' && (
+                {template.metadata?.displayType === "color" && (
                   <div className="w-24">
                     <Input
                       type="color"
                       value={newMetadata.hex || "#000000"}
-                      onChange={(e) => setNewMetadata({ ...newMetadata, hex: e.target.value })}
+                      onChange={(e) =>
+                        setNewMetadata({ ...newMetadata, hex: e.target.value })
+                      }
                       className="h-9 p-1"
-                    />
-                  </div>
-                )}
-
-                {template.type === 'size' && (
-                  <div className="w-40">
-                    <Input
-                      placeholder="Dimensions"
-                      value={newMetadata.dimensions || ""}
-                      onChange={(e) => setNewMetadata({ ...newMetadata, dimensions: e.target.value })}
                     />
                   </div>
                 )}
@@ -410,18 +450,17 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
                     className="flex items-center justify-between p-2 rounded-lg border group hover:border-primary transition-colors"
                   >
                     <div className="flex items-center space-x-3">
-                      {template.type === 'color' && (
+                      {template.metadata?.displayType === "color" && (
                         <div
                           className="w-6 h-6 rounded"
                           style={{ backgroundColor: value.metadata?.hex }}
                         />
                       )}
                       <span className="font-medium">{value.value}</span>
-                      {value.metadata?.dimensions && (
-                        <Badge variant="secondary">{value.metadata.dimensions}</Badge>
-                      )}
                       {value.metadata?.surcharge && (
-                        <Badge variant="secondary">+${value.metadata.surcharge}</Badge>
+                        <Badge variant="secondary">
+                          +${value.metadata.surcharge}
+                        </Badge>
                       )}
                     </div>
                     <Button
@@ -439,109 +478,43 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
           </Card>
         </TabsContent>
 
-        <TabsContent value="advanced">
+        <TabsContent value="display">
           <Card>
             <CardHeader>
-              <CardTitle>Advanced Settings</CardTitle>
+              <CardTitle>Display Settings</CardTitle>
               <CardDescription>
-                Configure advanced options for this variant template
+                Choose how this variant will appear to customers
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label>Display Type</Label>
-                  <Select
-                    value={template.metadata?.displayType}
-                    onValueChange={(value: 'dropdown' | 'color' | 'button' | 'radio') =>
+              <div className="grid grid-cols-2 gap-4">
+                {DISPLAY_TYPES.map((type) => (
+                  <div
+                    key={type.value}
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                      template.metadata?.displayType === type.value
+                        ? "border-primary bg-primary/5"
+                        : "border-transparent hover:border-primary/20"
+                    }`}
+                    onClick={() =>
                       setTemplate({
                         ...template,
-                        metadata: { ...template.metadata, displayType: value }
+                        metadata: {
+                          ...template.metadata,
+                          displayType: type.value as any,
+                        },
                       })
                     }
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select display type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dropdown">Dropdown</SelectItem>
-                      <SelectItem value="color">Color Picker</SelectItem>
-                      <SelectItem value="button">Button Group</SelectItem>
-                      <SelectItem value="radio">Radio Group</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={template.metadata?.required}
-                      onChange={(e) =>
-                        setTemplate({
-                          ...template,
-                          metadata: { ...template.metadata, required: e.target.checked }
-                        })
-                      }
-                      className="rounded border-gray-300"
-                    />
-                    <span>Required</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={template.metadata?.allowMultiple}
-                      onChange={(e) =>
-                        setTemplate({
-                          ...template,
-                          metadata: { ...template.metadata, allowMultiple: e.target.checked }
-                        })
-                      }
-                      className="rounded border-gray-300"
-                    />
-                    <span>Allow Multiple</span>
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Default Value</Label>
-                  <Select
-                    value={template.metadata?.defaultValue}
-                    onValueChange={(value) =>
-                      setTemplate({
-                        ...template,
-                        metadata: { ...template.metadata, defaultValue: value }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select default value" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {template.values.map((value) => (
-                        <SelectItem key={value.id} value={value.id}>
-                          {value.value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Sort Order</Label>
-                  <Input
-                    type="number"
-                    value={template.metadata?.sortOrder || 0}
-                    onChange={(e) =>
-                      setTemplate({
-                        ...template,
-                        metadata: { ...template.metadata, sortOrder: parseInt(e.target.value) }
-                      })
-                    }
-                    placeholder="Enter sort order"
-                  />
-                </div>
+                    <h3 className="font-medium">{type.label}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {type.description}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2 italic">
+                      Example: {type.example}
+                    </p>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -556,9 +529,7 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
               This is how the variant will appear to users
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {renderPreview()}
-          </CardContent>
+          <CardContent>{renderPreview()}</CardContent>
         </Card>
       )}
 
@@ -566,7 +537,10 @@ const VariantTemplateForm = ({ onSave, onCancel, existingTemplate, isQuickAdd }:
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={!template.name || template.values.length === 0}>
+        <Button
+          onClick={handleSubmit}
+          disabled={!template.name || template.values.length === 0}
+        >
           <Save className="mr-2 h-4 w-4" /> Save Template
         </Button>
       </div>
